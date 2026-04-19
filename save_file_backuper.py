@@ -281,7 +281,7 @@ class BackupApp:
         ttk.Entry(main, textvariable=self.source_path, width=50).grid(row=1, column=0, columnspan=2, sticky=EW, padx=(0, 5))
         src_browse = ttk.Button(main, text="Browse", command=self.browse_source)
         src_browse.grid(row=1, column=2, sticky=W)
-        ToolTip(src_browse, r"Select your game save file.\nUsually under C:\Users\{YourName}\AppData")
+        ToolTip(src_browse, "Select your game save file.\nUsually under C:\\Users\\{YourName}\\AppData")
 
         ttk.Label(main, text="Backup Destination (Custom):").grid(row=2, column=0, columnspan=3, sticky=W, pady=(10, 2))
 
@@ -289,7 +289,7 @@ class BackupApp:
         self.backup_entry.grid(row=3, column=0, columnspan=2, sticky=EW, padx=(0, 5))
         self.browse_btn = ttk.Button(main, text="Browse", command=self.browse_backup)
         self.browse_btn.grid(row=3, column=2, sticky=W)
-        ToolTip(self.browse_btn, r"Choose a base folder. A dated 'Backup-YYYY-MM-DD' subfolder will be created inside.\nExample: /Documents/MyBackups")
+        ToolTip(self.browse_btn, "Choose a base folder for Backups\nExample: \\Documents\\MyBackups")
 
         loc_frame = ttk.Frame(main)
         loc_frame.grid(row=4, column=0, columnspan=3, sticky=W, pady=10)
@@ -302,7 +302,7 @@ class BackupApp:
                                   variable=self.backup_location_type, value="script_dated",
                                   command=self.toggle_location)
         auto_rb.pack(side=LEFT, padx=5)
-        ToolTip(auto_rb, r"Backups will be saved in a 'Backup-YYYY-MM-DD' folder located next to this program.")
+        ToolTip(auto_rb, "Backups will be saved in a folder located next to this program.")
 
         mode_frame = ttk.LabelFrame(main, text="Backup Trigger", padding="5")
         mode_frame.grid(row=5, column=0, columnspan=3, sticky=EW, pady=10)
