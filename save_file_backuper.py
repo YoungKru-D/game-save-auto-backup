@@ -9,8 +9,8 @@ from tkinter import ttk, filedialog, messagebox
 from typing import Optional, Callable
 
 try:
-    from watchdog.observers import Observer
-    from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer # type: ignore
+    from watchdog.events import FileSystemEventHandler # type: ignore
     WATCHDOG_AVAILABLE = True
 except ImportError:
     WATCHDOG_AVAILABLE = False
@@ -209,7 +209,7 @@ class BackupApp:
     def __init__(self, root: Tk):
         self.root = root
         self.root.title("Game Save Backup Manager")
-        self.root.geometry("500x400")
+        self.root.geometry("425x450")
         self.root.resizable(True, True)
 
         self.engine = BackupEngine(log_callback=self.log)
@@ -229,18 +229,20 @@ class BackupApp:
         main = ttk.Frame(self.root, padding="10")
         main.pack(fill=BOTH, expand=True)
 
-        ttk.Label(main, text="Source Game Save File:").grid(row=0, column=0, sticky=W, pady=5)
-        ttk.Entry(main, textvariable=self.source_path, width=50).grid(row=0, column=1, padx=5, pady=5)
-        ttk.Button(main, text="Browse", command=self.browse_source).grid(row=0, column=2, padx=5, pady=5)
+        ttk.Label(main, text="Source Game Save File:").grid(row=0, column=0, columnspan=3, sticky=W, pady=(0, 2))
 
-        ttk.Label(main, text="Backup Destination (Custom):").grid(row=1, column=0, sticky=W, pady=5)
+        ttk.Entry(main, textvariable=self.source_path, width=50).grid(row=1, column=0, columnspan=2, sticky=EW, padx=(0, 5))
+        ttk.Button(main, text="Browse", command=self.browse_source).grid(row=1, column=2, padx=(0, 5))
+
+        ttk.Label(main, text="Backup Destination (Custom):").grid(row=2, column=0, columnspan=3, sticky=W, pady=(10, 2))
+
         self.backup_entry = ttk.Entry(main, textvariable=self.backup_dir, width=50)
-        self.backup_entry.grid(row=1, column=1, padx=5, pady=5)
+        self.backup_entry.grid(row=3, column=0, columnspan=2, sticky=EW, padx=(0, 5))
         self.browse_btn = ttk.Button(main, text="Browse", command=self.browse_backup)
-        self.browse_btn.grid(row=1, column=2, padx=5, pady=5)
+        self.browse_btn.grid(row=3, column=2, padx=(0, 5))
 
         loc_frame = ttk.Frame(main)
-        loc_frame.grid(row=2, column=0, columnspan=3, sticky=W, pady=5)
+        loc_frame.grid(row=4, column=0, columnspan=3, sticky=W, pady=10)
         ttk.Radiobutton(loc_frame, text="Use custom folder",
                         variable=self.backup_location_type, value="custom",
                         command=self.toggle_location).pack(side=LEFT, padx=5)
@@ -249,7 +251,7 @@ class BackupApp:
                         command=self.toggle_location).pack(side=LEFT, padx=5)
 
         mode_frame = ttk.LabelFrame(main, text="Backup Trigger", padding="5")
-        mode_frame.grid(row=3, column=0, columnspan=3, sticky=EW, pady=10)
+        mode_frame.grid(row=5, column=0, columnspan=3, sticky=EW, pady=10)
 
         ttk.Radiobutton(mode_frame, text="On file modification (watchdog)",
                         variable=self.backup_mode, value="modification").grid(row=0, column=0, sticky=W, padx=10)
@@ -260,36 +262,38 @@ class BackupApp:
         self.time_frame.grid(row=1, column=1, sticky=W, padx=20)
         ttk.Label(self.time_frame, text="Every").pack(side=LEFT)
         self.interval_spin = ttk.Spinbox(self.time_frame, from_=1, to=3600, width=5,
-                                         textvariable=self.time_interval)
+                                        textvariable=self.time_interval)
         self.interval_spin.pack(side=LEFT, padx=5)
         ttk.Combobox(self.time_frame, textvariable=self.time_unit,
-                     values=["seconds", "minutes"], width=8, state="readonly").pack(side=LEFT)
+                    values=["seconds", "minutes"], width=8, state="readonly").pack(side=LEFT)
 
         self.backup_mode.trace_add('write', self.toggle_time_controls)
         self.toggle_time_controls()
 
         ttk.Checkbutton(main, text="Add timestamp to backup filenames",
-                        variable=self.use_timestamp).grid(row=4, column=0, columnspan=3, sticky=W, pady=5)
+                        variable=self.use_timestamp).grid(row=6, column=0, columnspan=3, sticky=W, pady=5)
 
         btn_frame = ttk.Frame(main)
-        btn_frame.grid(row=5, column=0, columnspan=3, pady=10)
+        btn_frame.grid(row=7, column=0, columnspan=3, pady=10)
         self.start_btn = ttk.Button(btn_frame, text="Start Monitoring", command=self.start_monitoring)
         self.start_btn.pack(side=LEFT, padx=5)
         self.stop_btn = ttk.Button(btn_frame, text="Stop Monitoring", command=self.stop_monitoring, state=DISABLED)
         self.stop_btn.pack(side=LEFT, padx=5)
         ttk.Button(btn_frame, text="Backup Now (Manual)", command=self.perform_backup).pack(side=LEFT, padx=5)
 
-        ttk.Label(main, text="Activity Log:").grid(row=6, column=0, sticky=W, pady=(10, 0))
+        ttk.Label(main, text="Activity Log:").grid(row=8, column=0, sticky=W, pady=(10, 0))
+
         log_frame = ttk.Frame(main)
-        log_frame.grid(row=7, column=0, columnspan=3, sticky=NSEW, pady=5)
+        log_frame.grid(row=9, column=0, columnspan=3, sticky=NSEW, pady=5)
         self.log_text = Text(log_frame, height=12, wrap=WORD, state=DISABLED)
         scrollbar = ttk.Scrollbar(log_frame, orient=VERTICAL, command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=scrollbar.set)
         self.log_text.pack(side=LEFT, fill=BOTH, expand=True)
         scrollbar.pack(side=RIGHT, fill=Y)
 
+        main.columnconfigure(0, weight=1)
         main.columnconfigure(1, weight=1)
-        main.rowconfigure(7, weight=1)
+        main.rowconfigure(9, weight=1)
 
         self.toggle_location()
 
