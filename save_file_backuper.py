@@ -21,6 +21,52 @@ DATE_FOLDER_FORMAT = "%Y-%m-%d"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 LOG_TIME_FORMAT = "%H:%M:%S"
 
+
+class ToolTip:
+    def __init__(self, widget, text, delay_ms=300):
+        self.widget = widget
+        self.text = text
+        self.delay_ms = delay_ms
+        self.tip_window = None
+        self.after_id = None
+        widget.bind('<Enter>', self.schedule_show)
+        widget.bind('<Leave>', self.cancel_and_hide)
+        widget.bind('<Button-1>', self.cancel_and_hide)
+
+    def schedule_show(self, event=None):
+        self.cancel_scheduled()
+        self.after_id = self.widget.after(self.delay_ms, self.show_tip)
+
+    def cancel_scheduled(self):
+        if self.after_id:
+            self.widget.after_cancel(self.after_id)
+            self.after_id = None
+
+    def cancel_and_hide(self, event=None):
+        self.cancel_scheduled()
+        self.hide_tip()
+
+    def show_tip(self):
+        self.after_id = None
+        if self.tip_window or not self.text:
+            return
+        x = self.widget.winfo_rootx() + 25
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        self.tip_window = tw = Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        label = ttk.Label(tw, text=self.text, justify=LEFT,
+                          background="#ffffe0", relief=SOLID, borderwidth=1,
+                          padding=(5, 3))
+        label.pack()
+
+    def hide_tip(self):
+        tw = self.tip_window
+        self.tip_window = None
+        if tw:
+            tw.destroy()
+
+
 class BackupEngine:
     def __init__(self, log_callback: Callable[[str], None]):
         self.log_callback = log_callback
@@ -32,12 +78,12 @@ class BackupEngine:
         self.last_backup_time = 0.0
         self.backup_cooldown = BACKUP_COOLDOWN_SEC
 
-        self.source_pattern = ""          # can be a direct file or a pattern with $
-        self.backup_base_dir = ""         # user selected base folder (for custom mode)
-        self.location_type = "custom"     # "custom" or "script_dated"
+        self.source_pattern = ""
+        self.backup_base_dir = ""
+        self.location_type = "custom"
         self.use_timestamp = True
-        self.mode = "modification"        # "modification" or "time"
-        self.time_interval_seconds = 300  # default 5 minutes
+        self.mode = "modification"
+        self.time_interval_seconds = 300
 
     def set_config(self, source: str, backup_base: str, location_type: str,
                    use_timestamp: bool, mode: str, interval_sec: int) -> None:
@@ -211,6 +257,7 @@ class BackupApp:
         self.root.title("Game Save Backup Manager")
         self.root.geometry("425x450")
         self.root.resizable(True, True)
+        self.root.minsize(425, 450)
 
         self.engine = BackupEngine(log_callback=self.log)
 
@@ -232,31 +279,42 @@ class BackupApp:
         ttk.Label(main, text="Source Game Save File:").grid(row=0, column=0, columnspan=3, sticky=W, pady=(0, 2))
 
         ttk.Entry(main, textvariable=self.source_path, width=50).grid(row=1, column=0, columnspan=2, sticky=EW, padx=(0, 5))
-        ttk.Button(main, text="Browse", command=self.browse_source).grid(row=1, column=2, padx=(0, 5))
+        src_browse = ttk.Button(main, text="Browse", command=self.browse_source)
+        src_browse.grid(row=1, column=2, sticky=W)
+        ToolTip(src_browse, r"Select your game save file.\nUsually under C:\Users\{YourName}\AppData")
 
         ttk.Label(main, text="Backup Destination (Custom):").grid(row=2, column=0, columnspan=3, sticky=W, pady=(10, 2))
 
         self.backup_entry = ttk.Entry(main, textvariable=self.backup_dir, width=50)
         self.backup_entry.grid(row=3, column=0, columnspan=2, sticky=EW, padx=(0, 5))
         self.browse_btn = ttk.Button(main, text="Browse", command=self.browse_backup)
-        self.browse_btn.grid(row=3, column=2, padx=(0, 5))
+        self.browse_btn.grid(row=3, column=2, sticky=W)
+        ToolTip(self.browse_btn, r"Choose a base folder. A dated 'Backup-YYYY-MM-DD' subfolder will be created inside.\nExample: /Documents/MyBackups")
 
         loc_frame = ttk.Frame(main)
         loc_frame.grid(row=4, column=0, columnspan=3, sticky=W, pady=10)
-        ttk.Radiobutton(loc_frame, text="Use custom folder",
-                        variable=self.backup_location_type, value="custom",
-                        command=self.toggle_location).pack(side=LEFT, padx=5)
-        ttk.Radiobutton(loc_frame, text="Auto in script path",
-                        variable=self.backup_location_type, value="script_dated",
-                        command=self.toggle_location).pack(side=LEFT, padx=5)
+        custom_rb = ttk.Radiobutton(loc_frame, text="Use custom folder",
+                                    variable=self.backup_location_type, value="custom",
+                                    command=self.toggle_location)
+        custom_rb.pack(side=LEFT, padx=5)
+        ToolTip(custom_rb, "Backups will be saved inside the folder you selected above.")
+        auto_rb = ttk.Radiobutton(loc_frame, text="Auto in script path",
+                                  variable=self.backup_location_type, value="script_dated",
+                                  command=self.toggle_location)
+        auto_rb.pack(side=LEFT, padx=5)
+        ToolTip(auto_rb, r"Backups will be saved in a 'Backup-YYYY-MM-DD' folder located next to this program.")
 
         mode_frame = ttk.LabelFrame(main, text="Backup Trigger", padding="5")
         mode_frame.grid(row=5, column=0, columnspan=3, sticky=EW, pady=10)
 
-        ttk.Radiobutton(mode_frame, text="On file modification (watchdog)",
-                        variable=self.backup_mode, value="modification").grid(row=0, column=0, sticky=W, padx=10)
-        ttk.Radiobutton(mode_frame, text="Time‑based backup",
-                        variable=self.backup_mode, value="time").grid(row=1, column=0, sticky=W, padx=10)
+        watchdog_rb = ttk.Radiobutton(mode_frame, text="On file modification (watchdog)",
+                                      variable=self.backup_mode, value="modification")
+        watchdog_rb.grid(row=0, column=0, sticky=W, padx=10)
+        ToolTip(watchdog_rb, "Backs up instantly when the save file is created, changed, or moved.")
+        time_rb = ttk.Radiobutton(mode_frame, text="Time‑based backup",
+                                  variable=self.backup_mode, value="time")
+        time_rb.grid(row=1, column=0, sticky=W, padx=10)
+        ToolTip(time_rb, "Backs up at regular intervals regardless of file changes.")
 
         self.time_frame = ttk.Frame(mode_frame)
         self.time_frame.grid(row=1, column=1, sticky=W, padx=20)
@@ -270,8 +328,10 @@ class BackupApp:
         self.backup_mode.trace_add('write', self.toggle_time_controls)
         self.toggle_time_controls()
 
-        ttk.Checkbutton(main, text="Add timestamp to backup filenames",
-                        variable=self.use_timestamp).grid(row=6, column=0, columnspan=3, sticky=W, pady=5)
+        ts_cb = ttk.Checkbutton(main, text="Add timestamp to backup filenames",
+                                variable=self.use_timestamp)
+        ts_cb.grid(row=6, column=0, columnspan=3, sticky=W, pady=5)
+        ToolTip(ts_cb, "If checked, each backup file will include the date and time in its name.\nOtherwise the original name is kept (overwrites previous backup).")
 
         btn_frame = ttk.Frame(main)
         btn_frame.grid(row=7, column=0, columnspan=3, pady=10)
