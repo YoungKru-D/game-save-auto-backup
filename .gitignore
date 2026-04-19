@@ -1,0 +1,40 @@
+# Virtual environment
+.venv/
+venv/
+env/
+.env/
+.venv*
+
+# PyInstaller build and distribution folders
+build/
+dist/
+
+# PyInstaller spec file (optional, you may keep it if you want reproducibility)
+*.spec
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Logs and databases
+*.log
+*.db
+*.sqlite3
+
+# IDE / editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup folders (if you don't want to commit them)
+Backup-*/
